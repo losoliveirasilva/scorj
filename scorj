@@ -1,0 +1,100 @@
+#!/bin/bash
+# MIT License (MIT) Copyright (c) 2016 - Leonardo de Oliveira da Silva
+while getopts "hcrod:m:" flag
+do
+    case "${flag}" in
+        c)
+            comp=1 ;;
+        r)
+            run=1 ;;
+        h)
+            echo "scorj 1.0 | Compile, run and organize Java files | Powered by losoliveirasilva"
+            echo ""
+            echo "Usage: scorj"
+            echo "     : scorj [arguments]"
+            echo ""
+            echo "Examples:"
+            echo "  scorj                      # Organize, compile and run java files"
+            echo "  scorj -cr -m Foo -d Bar/   # Compile and run Foo from Bar folder"
+            echo ""
+            echo "Arguments:"
+            echo "   -h                         Open help"
+            echo "   -c                         Compile java files"
+            echo "   -r                         Run java files"
+            echo "   -o                         Organize class and java files"
+            echo "   -m                         Change main class (default: Main)"
+            echo "   -d                         Change directory"
+            echo ""
+            echo "Leonardo de Oliveira da Silva"
+            echo "github.com/losoliveirasilva"
+            exit 0 ;;
+        o)
+            org=1 ;;
+        d)
+            path="${OPTARG}" ;;
+        m)
+            mainname="${OPTARG}" ;;
+
+    esac
+    flags=1
+done
+
+#shift $((OPTIND - 1))
+[[ -n "${path}" ]] || path="$PWD"
+[[ -n "${mainname}" ]] || mainname="Main"
+
+die() {
+    echo $@ 1>&2
+    exit -1
+}
+
+enableall() {
+    run=1
+    comp=1
+    org=1
+}
+
+#[[ "${flags}" == 1 ]] || die "No flags were passed"
+[[ "${flags}" == 1 ]] || enableall
+
+compile() {
+    if [[ "${comp}" == 1 ]]
+    then
+        [[ -d $path/bin ]] || mkdir $path/bin
+        javac -d $path/bin/ $path/src/*.java
+    fi
+}
+
+run() {
+    if [[ "${run}" == 1 ]]
+    then
+        java -cp $path/bin/ $mainname 2> /dev/null
+        while [[ $? -ne 0 ]]
+        do
+            echo -n "Failed to run main class, insert the main class name: "
+            read classname;
+            java -cp $path/bin $classname 2> /dev/null
+        done
+    fi
+}
+
+organize() {
+    if [[ "${org}" == 1 ]]
+    then
+        java="$(find $path -maxdepth 1 -name '*.java' -type f)"
+        if [[ -n $java ]]
+        then
+            [[ -d $path/src ]] || mkdir $path/src
+            mv *.java $path/src
+        fi
+
+        class="$(find $path -maxdepth 1 -name '*.class' -type f)"
+        if [[ -n $class ]]
+        then
+            [[ -d $path/bin ]] || mkdir $path/bin
+            mv *.class $path/bin
+        fi
+    fi
+}
+
+organize && compile && run
